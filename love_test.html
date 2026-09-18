@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>你的恋爱人格测试</title>
+<style>
+  :root {
+    --bg: #fdf1f0;
+    --card: #ffffff;
+    --text: #3a2b2b;
+    --accent: #e08a8a;
+    --accent2: #c96b6b;
+    --muted: #a68585;
+    --bar: #f2d4d4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #201618;
+      --card: #2b2022;
+      --text: #f2e6e6;
+      --muted: #b89a9a;
+      --bar: #3a2b2d;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #201618;
+    --card: #2b2022;
+    --text: #f2e6e6;
+    --muted: #b89a9a;
+    --bar: #3a2b2d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "PingFang SC", -apple-system, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px;
+    margin: 0;
+    min-height: 100vh;
+  }
+  #app { max-width: 460px; width: 100%; }
+  h1 {
+    font-size: 1.25em;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  #progress {
+    height: 6px;
+    background: var(--bar);
+    border-radius: 3px;
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  #progress-fill {
+    height: 100%;
+    background: var(--accent2);
+    width: 0%;
+    transition: width 0.3s;
+  }
+  #card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 26px 20px;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.08);
+    min-height: 260px;
+  }
+  #qnum {
+    color: var(--muted);
+    font-size: 0.85em;
+    margin-bottom: 8px;
+  }
+  #question {
+    font-size: 1.08em;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+  .opt-btn {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: 1.5px solid var(--accent);
+    color: var(--text);
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 0.98em;
+    text-align: left;
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+  .opt-btn:active { background: rgba(201,107,107,0.12); }
+
+  /* 结果页 */
+  #result { text-align: center; }
+  #result-emoji { font-size: 3.2em; margin-bottom: 6px; }
+  #result-title {
+    font-size: 1.4em;
+    font-weight: 700;
+    color: var(--accent2);
+    margin-bottom: 10px;
+  }
+  #result-desc {
+    line-height: 1.8;
+    text-align: left;
+    font-size: 0.98em;
+  }
+  #result-tips {
+    margin-top: 14px;
+    padding: 14px;
+    background: var(--bg);
+    border-radius: 10px;
+    font-size: 0.92em;
+    text-align: left;
+    line-height: 1.7;
+  }
+  #restart {
+    margin: 20px auto 0;
+    display: block;
+    background: var(--accent2);
+    color: white;
+    border: none;
+    padding: 10px 28px;
+    border-radius: 10px;
+    font-size: 0.95em;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>💘 你的恋爱人格测试</h1>
+  <div id="progress"><div id="progress-fill"></div></div>
+  <div id="card">
+    <div id="quiz">
+      <div id="qnum"></div>
+      <div id="question"></div>
+      <div id="options"></div>
+    </div>
+    <div id="result" style="display:none;"></div>
+  </div>
+  <button id="restart" style="display:none;">再测一次</button>
+</div>
+
+<script>
+const questions = [
+  {
+    q: "刚开始喜欢一个人的时候，你通常会：",
+    opts: [
+      { t: "忍不住天天找话题聊天", type: "A" },
+      { t: "默默关注对方动态，不敢先开口", type: "B" },
+      { t: "假装不在意，其实很在意", type: "C" },
+      { t: "直接约出来吃饭，直球一点", type: "D" }
+    ]
+  },
+  {
+    q: "恋爱中，你最需要的安全感来自：",
+    opts: [
+      { t: "对方随时秒回消息", type: "A" },
+      { t: "两人保持一定的个人空间", type: "B" },
+      { t: "对方主动一点，证明真的在乎", type: "C" },
+      { t: "清楚彼此的关系和未来方向", type: "D" }
+    ]
+  },
+  {
+    q: "吵架之后，你的第一反应是：",
+    opts: [
+      { t: "很难受，想马上和好", type: "A" },
+      { t: "需要自己先冷静一下", type: "B" },
+      { t: "等对方先来哄", type: "C" },
+      { t: "直接把问题摊开说清楚", type: "D" }
+    ]
+  },
+  {
+    q: "对象突然说要出差一周，你会：",
+    opts: [
+      { t: "有点失落，但会每天视频", type: "A" },
+      { t: "还好，正好自己也能做点事", type: "B" },
+      { t: "嘴上说没关系，心里有点不安", type: "C" },
+      { t: "提前问清楚行程和安排", type: "D" }
+    ]
+  },
+  {
+    q: "你理想中的约会是：",
+    opts: [
+      { t: "腻在一起，做什么都行", type: "A" },
+      { t: "各自忙自己的，偶尔一起吃饭", type: "B" },
+      { t: "对方精心安排的惊喜", type: "C" },
+      { t: "提前计划好、效率满满的一天", type: "D" }
+    ]
+  },
+  {
+    q: "朋友吐槽你另一半的缺点，你会：",
+    opts: [
+      { t: "下意识就想帮ta说话", type: "A" },
+      { t: "听听就好，自己心里有数", type: "B" },
+      { t: "心里不舒服，但不表现出来", type: "C" },
+      { t: "客观分析，该认同就认同", type: "D" }
+    ]
+  },
+  {
+    q: "你觉得爱情里最重要的是：",
+    opts: [
+      { t: "陪伴和亲密感", type: "A" },
+      { t: "各自独立又互相尊重", type: "B" },
+      { t: "被在乎、被重视的感觉", type: "C" },
+      { t: "三观一致、能一起规划未来", type: "D" }
+    ]
+  },
+  {
+    q: "如果暗恋一个人很久都没结果，你会：",
+    opts: [
+      { t: "继续等，相信总会有机会", type: "A" },
+      { t: "慢慢转移注意力，顺其自然", type: "B" },
+      { t: "偷偷难过，但装作无所谓", type: "C" },
+      { t: "直接表白，问清楚结果", type: "D" }
+    ]
+  },
+  {
+    q: "情人节/纪念日，你更希望：",
+    opts: [
+      { t: "对方全天陪着自己，仪式感拉满", type: "A" },
+      { t: "简单过就好，不用太刻意", type: "B" },
+      { t: "对方能给个意外惊喜，证明用心", type: "C" },
+      { t: "提前商量好怎么过，双方都满意", type: "D" }
+    ]
+  },
+  {
+    q: "对方最近突然变得冷淡，你会：",
+    opts: [
+      { t: "很焦虑，忍不住反复找ta聊", type: "A" },
+      { t: "先给彼此一点空间，观察观察", type: "B" },
+      { t: "心里胡思乱想，但不敢问", type: "C" },
+      { t: "直接问清楚，是不是哪里出了问题", type: "D" }
+    ]
+  },
+  {
+    q: "你更容易在什么情况下心动：",
+    opts: [
+      { t: "对方一直很关心、很粘人", type: "A" },
+      { t: "对方独立又有自己的世界", type: "B" },
+      { t: "对方懂你的小情绪，很细心", type: "C" },
+      { t: "对方靠谱、说到做到", type: "D" }
+    ]
+  },
+  {
+    q: "两个人的社交圈，你觉得应该：",
+    opts: [
+      { t: "尽量融合在一起，一起认识朋友", type: "A" },
+      { t: "保持各自独立的圈子", type: "B" },
+      { t: "希望对方多带自己参与ta的圈子", type: "C" },
+      { t: "适当交叉，重要的场合互相参加", type: "D" }
+    ]
+  },
+  {
+    q: "看到对方朋友圈没有你们的合照，你会：",
+    opts: [
+      { t: "有点在意，希望多秀恩爱", type: "A" },
+      { t: "无所谓，感情不需要靠这个证明", type: "B" },
+      { t: "心里会想很多，但不说出来", type: "C" },
+      { t: "如果需要仪式感就直接沟通提出", type: "D" }
+    ]
+  },
+  {
+    q: "谈恋爱时，你最怕的是：",
+    opts: [
+      { t: "对方突然疏远、联系变少", type: "A" },
+      { t: "两个人黏得太紧、失去自我", type: "B" },
+      { t: "自己付出很多却得不到同等回应", type: "C" },
+      { t: "关系一直暧昧不清、没有结果", type: "D" }
+    ]
+  },
+  {
+    q: "面对一段关系要不要继续，你的判断标准是：",
+    opts: [
+      { t: "还有没有心动和依恋的感觉", type: "A" },
+      { t: "两人相处是否轻松自在", type: "B" },
+      { t: "对方是否真的在乎、重视自己", type: "C" },
+      { t: "是否合适，能不能走向未来", type: "D" }
+    ]
+  },
+  {
+    q: "理想中彼此的关系状态是：",
+    opts: [
+      { t: "形影不离，时刻分享生活", type: "A" },
+      { t: "各自精彩，偶尔交汇取暖", type: "B" },
+      { t: "被深深理解、被温柔以待", type: "C" },
+      { t: "并肩前行、共同成长的队友", type: "D" }
+    ]
+  },
+  {
+    q: "对方忘记了一件你很在意的小事，你会：",
+    opts: [
+      { t: "很失落，反复想是不是不够重视你", type: "A" },
+      { t: "提醒一下就好，不放心上", type: "B" },
+      { t: "默默难过，等对方自己发现", type: "C" },
+      { t: "直接说出来，讲清楚为什么在意", type: "D" }
+    ]
+  },
+  {
+    q: "你更享受恋爱中的哪个阶段：",
+    opts: [
+      { t: "热恋期，天天腻在一起的感觉", type: "A" },
+      { t: "磨合期之后的舒适稳定", type: "B" },
+      { t: "暧昧期，猜来猜去的心动感", type: "C" },
+      { t: "确定关系、规划未来的阶段", type: "D" }
+    ]
+  },
+  {
+    q: "对方的家人朋友对你冷淡，你会：",
+    opts: [
+      { t: "很在意，努力想融入", type: "A" },
+      { t: "不强求，做好自己就行", type: "B" },
+      { t: "心里委屈，但不表现出来", type: "C" },
+      { t: "跟对方沟通该怎么处理", type: "D" }
+    ]
+  },
+  {
+    q: "你发消息对方很久不回，你会：",
+    opts: [
+      { t: "忍不住多发几条", type: "A" },
+      { t: "先去做自己的事", type: "B" },
+      { t: "越想越焦虑，但不追问", type: "C" },
+      { t: "过一会儿平静地问一句", type: "D" }
+    ]
+  },
+  {
+    q: "你觉得恋爱中的\"仪式感\"：",
+    opts: [
+      { t: "很重要，能感受到被爱", type: "A" },
+      { t: "有没有都行，看心意", type: "B" },
+      { t: "渴望但不好意思要求", type: "C" },
+      { t: "重要的日子该有，平时随意", type: "D" }
+    ]
+  },
+  {
+    q: "跟对象意见不合时，你更倾向：",
+    opts: [
+      { t: "尽量迁就，怕影响感情", type: "A" },
+      { t: "各自保留意见，互不强迫", type: "B" },
+      { t: "表面同意，心里不服气", type: "C" },
+      { t: "摆事实讲道理，争取说服对方", type: "D" }
+    ]
+  },
+  {
+    q: "你希望对方怎么称呼/对待你：",
+    opts: [
+      { t: "多用昵称，黏糊一点", type: "A" },
+      { t: "平等自然，不用太刻意", type: "B" },
+      { t: "偶尔宠溺一下，有点在乎的表现", type: "C" },
+      { t: "尊重为主，像伙伴一样", type: "D" }
+    ]
+  },
+  {
+    q: "第一次牵手/接吻，你希望是：",
+    opts: [
+      { t: "自然而然，情到深处", type: "A" },
+      { t: "顺其自然，不刻意追求", type: "B" },
+      { t: "浪漫有氛围感的场景", type: "C" },
+      { t: "两人先说清楚关系再进行", type: "D" }
+    ]
+  },
+  {
+    q: "你如何看待恋爱中的独处时间：",
+    opts: [
+      { t: "尽量少，更想和对方在一起", type: "A" },
+      { t: "很需要，用来做自己的事", type: "B" },
+      { t: "会想对方在不在意自己独处", type: "C" },
+      { t: "合理安排，两不耽误", type: "D" }
+    ]
+  },
+  {
+    q: "面对异地恋，你的态度是：",
+    opts: [
+      { t: "会很想念，情绪波动大", type: "A" },
+      { t: "能接受，各自生活也不错", type: "B" },
+      { t: "表面淡定，心里很没安全感", type: "C" },
+      { t: "会提前规划好见面和未来", type: "D" }
+    ]
+  },
+  {
+    q: "你眼中最动人的告白方式是：",
+    opts: [
+      { t: "热烈直接的语言表达", type: "A" },
+      { t: "行动上的默默支持", type: "B" },
+      { t: "细节里体现出的用心", type: "C" },
+      { t: "认真谈未来规划的那种", type: "D" }
+    ]
+  },
+  {
+    q: "如果对方犯了小错误，你会：",
+    opts: [
+      { t: "很快原谅，不想冷战", type: "A" },
+      { t: "给点时间自己消化", type: "B" },
+      { t: "嘴上说没事，心里记很久", type: "C" },
+      { t: "说清楚问题，讨论怎么避免", type: "D" }
+    ]
+  },
+  {
+    q: "你更看重恋人身上的哪种特质：",
+    opts: [
+      { t: "温柔、有耐心", type: "A" },
+      { t: "独立、有主见", type: "B" },
+      { t: "细腻、懂你的心思", type: "C" },
+      { t: "靠谱、说话算数", type: "D" }
+    ]
+  },
+  {
+    q: "感情出现危机时，你的第一反应是：",
+    opts: [
+      { t: "害怕失去，努力挽回", type: "A" },
+      { t: "先冷静想清楚要不要继续", type: "B" },
+      { t: "陷入自我怀疑", type: "C" },
+      { t: "找对方谈清楚问题出在哪", type: "D" }
+    ]
+  },
+  {
+    q: "你怎么看待恋爱中的\"作\"：",
+    opts: [
+      { t: "偶尔会，想确认对方在意自己", type: "A" },
+      { t: "基本不会，觉得没必要", type: "B" },
+      { t: "会闷在心里，不直接表现", type: "C" },
+      { t: "有情绪会直接说，不绕弯子", type: "D" }
+    ]
+  },
+  {
+    q: "你如何安排恋爱和工作/学习的关系：",
+    opts: [
+      { t: "感情优先，工作可以往后放放", type: "A" },
+      { t: "各自独立，不互相影响", type: "B" },
+      { t: "会因为感情分心，但不承认", type: "C" },
+      { t: "两者都规划好，互不耽误", type: "D" }
+    ]
+  },
+  {
+    q: "你希望恋人多久联系一次：",
+    opts: [
+      { t: "随时保持联系最好", type: "A" },
+      { t: "看心情，不用太频繁", type: "B" },
+      { t: "希望频繁但不好意思说", type: "C" },
+      { t: "约定好节奏，双方舒服就行", type: "D" }
+    ]
+  },
+  {
+    q: "遇到喜欢的人，你更容易：",
+    opts: [
+      { t: "很快陷进去，全情投入", type: "A" },
+      { t: "慢热，需要时间观察", type: "B" },
+      { t: "反复纠结要不要开始", type: "C" },
+      { t: "理性判断合不合适再决定", type: "D" }
+    ]
+  },
+  {
+    q: "你觉得恋爱中最难的部分是：",
+    opts: [
+      { t: "克制自己不要太黏人", type: "A" },
+      { t: "适度表达在意，不显得冷淡", type: "B" },
+      { t: "把心里话说出口", type: "C" },
+      { t: "平衡理性和感性", type: "D" }
+    ]
+  },
+  {
+    q: "对方生病了，你会：",
+    opts: [
+      { t: "立刻放下手头事去照顾", type: "A" },
+      { t: "关心但保持适度距离", type: "B" },
+      { t: "很担心，但不知道怎么表达", type: "C" },
+      { t: "安排好实际需要的事情", type: "D" }
+    ]
+  },
+  {
+    q: "你希望多久见一次对象：",
+    opts: [
+      { t: "越频繁越好", type: "A" },
+      { t: "有自己的节奏就行", type: "B" },
+      { t: "希望多见但不好意思说", type: "C" },
+      { t: "提前约好固定频率", type: "D" }
+    ]
+  },
+  {
+    q: "看对方跟异性朋友正常聊天，你会：",
+    opts: [
+      { t: "心里有点不舒服", type: "A" },
+      { t: "完全不在意", type: "B" },
+      { t: "介意但不说出来", type: "C" },
+      { t: "会问清楚关系再判断", type: "D" }
+    ]
+  },
+  {
+    q: "感情中你更擅长：",
+    opts: [
+      { t: "表达爱意和情绪", type: "A" },
+      { t: "给对方空间和信任", type: "B" },
+      { t: "察觉对方细微的情绪变化", type: "C" },
+      { t: "解决实际问题、做决定", type: "D" }
+    ]
+  },
+  {
+    q: "如果要分手，你更希望：",
+    opts: [
+      { t: "拖一拖，舍不得干脆利落", type: "A" },
+      { t: "想清楚了就直接说明白", type: "B" },
+      { t: "很难过，但表现得云淡风轻", type: "C" },
+      { t: "把原因说清楚，理性收尾", type: "D" }
+    ]
+  },
+  {
+    q: "你怎么面对暧昧不明的关系：",
+    opts: [
+      { t: "很煎熬，想尽快确定关系", type: "A" },
+      { t: "顺其自然，不着急", type: "B" },
+      { t: "反复猜测对方心思", type: "C" },
+      { t: "主动挑明问清楚", type: "D" }
+    ]
+  },
+  {
+    q: "你如何表达对恋人的关心：",
+    opts: [
+      { t: "嘘寒问暖，事无巨细", type: "A" },
+      { t: "需要时才会主动关心", type: "B" },
+      { t: "关心但表达得比较含蓄", type: "C" },
+      { t: "用实际行动解决对方的问题", type: "D" }
+    ]
+  },
+  {
+    q: "两人第一次约会，你更倾向：",
+    opts: [
+      { t: "找个能一直聊天的地方", type: "A" },
+      { t: "轻松随意，做自己就好", type: "B" },
+      { t: "会紧张，希望对方主导", type: "C" },
+      { t: "提前规划好流程和话题", type: "D" }
+    ]
+  },
+  {
+    q: "你如何看待恋爱中的\"矛盾\"：",
+    opts: [
+      { t: "很怕吵架，尽量避免冲突", type: "A" },
+      { t: "正常现象，解决就好", type: "B" },
+      { t: "容易往心里去，影响很久", type: "C" },
+      { t: "是了解彼此、变得更合适的机会", type: "D" }
+    ]
+  },
+  {
+    q: "对方送你礼物，你更在意：",
+    opts: [
+      { t: "有没有用心和心意", type: "A" },
+      { t: "有没有都无所谓", type: "B" },
+      { t: "会默默对比自己送的和收到的", type: "C" },
+      { t: "礼物实不实用", type: "D" }
+    ]
+  },
+  {
+    q: "你在感情中最大的顾虑是：",
+    opts: [
+      { t: "怕自己爱得比对方多", type: "A" },
+      { t: "怕失去自我", type: "B" },
+      { t: "怕自己不够好、不被珍惜", type: "C" },
+      { t: "怕两人不合适、方向不一致", type: "D" }
+    ]
+  },
+  {
+    q: "看到对方情绪低落，你会：",
+    opts: [
+      { t: "立刻上前安慰、陪伴", type: "A" },
+      { t: "给对方空间，等ta主动说", type: "B" },
+      { t: "很想安慰但不知道怎么开口", type: "C" },
+      { t: "帮忙分析原因、想解决办法", type: "D" }
+    ]
+  },
+  {
+    q: "你理想中吵架后的和好方式是：",
+    opts: [
+      { t: "抱一下就什么都过去了", type: "A" },
+      { t: "各自想清楚了再聊", type: "B" },
+      { t: "希望对方主动来哄", type: "C" },
+      { t: "坐下来把问题说清楚", type: "D" }
+    ]
+  },
+  {
+    q: "你认为一段感情最重要的基础是：",
+    opts: [
+      { t: "深厚的情感依恋", type: "A" },
+      { t: "彼此的自由和信任", type: "B" },
+      { t: "被重视、被珍惜的感觉", type: "C" },
+      { t: "共同的目标和默契", type: "D" }
+    ]
+  },
+  {
+    q: "如果对方总加班没时间陪你，你会：",
+    opts: [
+      { t: "很失落，希望多陪陪自己", type: "A" },
+      { t: "理解，各自有各自的事业", type: "B" },
+      { t: "心里不满但不说出来", type: "C" },
+      { t: "跟对方商量怎么平衡时间", type: "D" }
+    ]
+  }
+];
+
+const typeValue = { A: 1, B: 2, C: 3, D: 4 };
+
+const results = [
+  { emoji: "🐱", title: "小奶猫粘人型", desc: "你在爱情里全情投入，喜欢时刻黏在对方身边，享受被需要的感觉，是那种恋爱脑满满的可爱类型。", tips: "小提醒：留一点自己的空间，感情会更有呼吸感。" },
+  { emoji: "🌹", title: "热烈甜蜜型", desc: "你的爱直接又浓烈，喜欢用行动和语言表达心意，对方能清楚感受到你的在乎，很少让人猜心思。", tips: "小提醒：偶尔慢一点表达，留点惊喜感也不错。" },
+  { emoji: "🧸", title: "温柔依恋型", desc: "你渴望稳定的陪伴和亲密感，重视两人之间的情感连接，愿意为一段关系花很多心思去经营。", tips: "小提醒：安全感也可以自己给自己一部分。" },
+  { emoji: "🌙", title: "细腻敏感型", desc: "你的情感很丰富，习惯把很多情绪藏在心里，容易因为一点小细节而想很多，其实很渴望被读懂。", tips: "小提醒：试着多说出真实感受，比猜测更有效。" },
+  { emoji: "🍯", title: "温暖治愈型", desc: "你在感情里很会照顾对方情绪，是那种让人觉得很安心、很舒服的类型，擅长营造温馨的相处氛围。", tips: "小提醒：别总是照顾别人，也让自己被好好照顾。" },
+  { emoji: "❄️", title: "神秘高冷型", desc: "你在感情里不轻易表露情绪，习惯先观察再行动，看起来有点难懂，但一旦认定就很专一。", tips: "小提醒：适当展示脆弱，会让关系更靠近一步。" },
+  { emoji: "🦋", title: "自由洒脱型", desc: "你享受恋爱，但更享受做自己，不会为了关系失去自我，是那种相处很轻松、不粘人的类型。", tips: "小提醒：偶尔主动表达需求，对方会更安心。" },
+  { emoji: "🌿", title: "清醒独立型", desc: "你谈恋爱很理性，很少被情绪牵着走，懂得权衡感情和生活的关系，很少因为爱情迷失方向。", tips: "小提醒：理性之外，偶尔放纵一下感性也很浪漫。" },
+  { emoji: "🎯", title: "理性务实型", desc: "你喜欢把关系想清楚、说明白，讨厌暧昧不清，是那种能一起认真规划生活的靠谱型恋人。", tips: "小提醒：感情不全是计划表，留点意外惊喜的空间。" },
+  { emoji: "🧭", title: "未来规划型", desc: "你谈恋爱目标感很强，重视三观契合和长期发展，喜欢和伴侣一起朝着共同的方向前进。", tips: "小提醒：偶尔停下规划，享受当下的小美好。" }
+];
+
+function getResultIndex(sum) {
+  const min = 50, max = 200, bucket = (max - min) / results.length;
+  let idx = Math.floor((sum - min) / bucket);
+  return Math.max(0, Math.min(results.length - 1, idx));
+}
+
+let current = 0;
+const answers = [];
+
+function renderQuestion() {
+  document.getElementById('quiz').style.display = 'block';
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('restart').style.display = 'none';
+
+  const q = questions[current];
+  document.getElementById('qnum').textContent = `第 ${current + 1} / ${questions.length} 题`;
+  document.getElementById('question').textContent = q.q;
+  document.getElementById('progress-fill').style.width = (current / questions.length * 100) + '%';
+
+  const optsEl = document.getElementById('options');
+  optsEl.innerHTML = '';
+  q.opts.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = o.t;
+    btn.onclick = () => {
+      answers.push(o.type);
+      current++;
+      if (current < questions.length) {
+        renderQuestion();
+      } else {
+        showResult();
+      }
+    };
+    optsEl.appendChild(btn);
+  });
+}
+
+function showResult() {
+  document.getElementById('progress-fill').style.width = '100%';
+  document.getElementById('quiz').style.display = 'none';
+
+  const sum = answers.reduce((acc, a) => acc + typeValue[a], 0);
+  const r = results[getResultIndex(sum)];
+
+  const resultEl = document.getElementById('result');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = `
+    <div id="result-emoji">${r.emoji}</div>
+    <div id="result-title">${r.title}</div>
+    <div id="result-desc">${r.desc}</div>
+    <div id="result-tips">${r.tips}</div>
+  `;
+  document.getElementById('restart').style.display = 'block';
+}
+
+document.getElementById('restart').onclick = () => {
+  current = 0;
+  answers.length = 0;
+  renderQuestion();
+};
+
+renderQuestion();
+</script>
+</body>
+</html>
